@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Play Area</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <a-scene background="color: #ECECEC">
+        <!-- Floor -->
+        <a-plane position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
+
+        <!-- Message -->
+        <a-text id="message" value="" position="0 2 -3" align="center" color="#000"></a-text>
+    </a-scene>
+
+    <script>
+        const socket = io('http://localhost:8080');
+
+        socket.on('waitingForPlayer', () => {
+            // Display the message
+            document.querySelector('#message').setAttribute('value', 'Waiting for player 2...');
+        });
+
+        socket.on('gameStart', () => {
+            // Change the message
+            document.querySelector('#message').setAttribute('value', 'Game is starting...');
+        });
+    </script>
+</body>
+</html>
