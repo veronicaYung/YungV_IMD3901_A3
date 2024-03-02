@@ -1,0 +1,34 @@
+<html>
+    <head>
+        <script src = "/socket.io/socket.io.js"></script>
+    </head>
+    <body>
+        <button id = "red_button" style = "background-color: red; color: white;">RED</button>
+        <button id = "blue_button" style = "background-color:blue; color: white;">BLUE</button>
+    </body>
+    <!--script tage at the end of page means that elements befoe it exists (before we act on them) -->
+    <script>
+        // create tunnel to server 
+        let socket = io();
+        socket.on('connect',(data)=>{
+            console.log('I exist in the network');
+            document.querySelector('#red_button').addEventListener('click', function(e){
+                socket.emit('red');
+            });
+            document.querySelector('#blue_button').addEventListener('click', function(e){
+                socket.emit('blue');
+            });
+
+            //listen for custon color_changer evernt 
+            socket.on('color_change',(data)=>{
+                //make a css color, then apply to the background of body 
+                let colorStr = 'rgb('+ data.r +','+ data.g +',' + data.b +')';
+                console.log('color_change: '+ colorStr);
+                document.body.style.backgroundColor = colorStr;
+
+            });
+        });
+
+
+    </script>
+</html>
