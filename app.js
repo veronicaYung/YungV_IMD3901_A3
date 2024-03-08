@@ -28,12 +28,12 @@ let players = [];
 io.on('connection',(socket)=>{
     console.log('A user connected: ' + socket.id);
     players.push(socket.id);
+
     if(players.length === 1){
         io.emit('waitingForPlayer');
     } else if(players.length === 2){
-        io.emit('gameStart');
+        io.emit('bothPlayersConnected')
     }
-
     socket.on('disconnect',() =>{
         console.log(socket.id + "is disconnected");
         // create new player array without the disconnected player
@@ -45,10 +45,13 @@ io.on('connection',(socket)=>{
         document.getElementById('message').textContent = 'Waiting for player 2...';
     });
 
-    socket.on('gameStart', () => {
-        // Start the game
-        console.log('Game is starting...');
+    socket.on('gameModeSelected', (gameMode) => {
+        io.emit('startGame', gameMode);
     });
+    // socket.on('playerChoice', (choice) => {
+    //     console.log(`Player 1 chose: ${choice}`); // Add this line for debugging
+    //     io.emit('playerOneChoice', choice);
+    // });
 
     //custom events --- default---
     socket.on('red', (data)=>{

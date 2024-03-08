@@ -3,15 +3,48 @@
 <head>
     <title>Play Area</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-animation-component@6.1.1/dist/aframe-animation-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-extras@^6/dist/aframe-extras.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    
 </head>
 <body>
     <a-scene background="color: #ECECEC">
-        <!-- Floor -->
-        <a-plane position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
-
+        <!--Camera and lights-->
+        <a-entity id = "camera_main" position = "0 1.6 0" camera wasd-controls look-controls>
+            <a-entity cursor = "rayOrigin:mouse;" raycaster="far:20; interval:200; objects:.interactive;"></a-entity>
+        </a-entity>
         <!-- Message -->
         <a-text id="message" value="" position="0 2 -3" align="center" color="#000"></a-text>
+        <a-text id="mode_message" value="" position="0 1.8 -3" align="center" color="#000"></a-text>
+
+        <!-- Floors-->
+        <a-plane id="floor_green" position="-2.5 0 -4" rotation="-90 0 0" width="5" height="5" color="#008000"></a-plane>
+        <a-plane id="floor_blue" position="2.5 0 -4" rotation="-90 0 0" width="5" height="5" color="#0000FF"></a-plane>
+        <a-plane id="floor_pink" position="-2.5 0 -9" rotation="-90 0 0" width="5" height="5" color="#FF007F"></a-plane>
+        <a-plane id="floor_orange" position="2.5 0 -9" rotation="-90 0 0" width="5" height="5" color="#FFA500"></a-plane>
+
+        <!-- Competitive Button -->
+        <a-entity  id = competeButton position = "-1.5 1 -3" visible ='false'>
+            <a-entity id = "cButton" class = "interactive"
+                geometry = "primitive:box; width:2.5; depth:0.01; height:1;" 
+                material = "color:rgb(255,0,0);"
+                animation__mouseenter="property: material.color; type: color; to: rgb(255,100,100); startEvents: mouseenter; dur: 100;"
+                animation__mouseleave="property: material.color; type: color; to: rgb(255,0,0); startEvents: mouseleave; dur: 100;">
+            </a-entity>
+            <a-text value="Competitive" align="center" color="#FFF" position="0 0 0.01"></a-text>
+        </a-entity>
+        <!-- Co-op Button -->
+        <a-entity id="coopButton" position="1.5 1 -3" visible ='false'>
+            <a-entity id="cpButton" class="interactive"
+                geometry="primitive:box; width:2.5; depth:0.01; height:1;" 
+                material="color:rgb(75, 154, 83);"
+                animation__mouseenter="property: material.color; type: color; to: rgb(115, 194, 123); startEvents: mouseenter; dur: 100;"
+                animation__mouseleave="property: material.color; type: color; to: rgb(75, 154, 83); startEvents: mouseleave; dur: 100;">
+            </a-entity>
+            <a-text value="Co-op" align="center" color="#FFF" position="0 0 0.01"></a-text>
+        </a-entity>
     </a-scene>
 
     <script>
@@ -20,12 +53,36 @@
         socket.on('waitingForPlayer', () => {
             // Display the message
             document.querySelector('#message').setAttribute('value', 'Waiting for player 2...');
+            console.log('Waiting for player 2...');
+        });
+        socket.on('bothPlayersConnected', () => {
+            console.log('Both players have connected');
+            document.querySelector('#message').setAttribute('value', 'All players in... Choose a game mode ');
+            document.querySelector('#coopButton').setAttribute('visible', true);
+            document.querySelector('#competeButton').setAttribute('visible', true);
         });
 
-        socket.on('gameStart', () => {
-            // Change the message
-            document.querySelector('#message').setAttribute('value', 'Game is starting...');
+        document.querySelector('#coopButton').addEventListener('click', () => {
+            console.log('Coop button clicked');
+            socket.emit('gameModeSelected', 'coop');
         });
+
+        document.querySelector('#competeButton').addEventListener('click', () => {
+            console.log('Compete button clicked');
+            socket.emit('gameModeSelected', 'compete');
+        });
+
+        socket.on('startGame', (gameMode) => {
+            document.querySelector('#coopButton').setAttribute('visible', false);
+            document.querySelector('#competeButton').setAttribute('visible', false);
+            document.querySelector('#message').setAttribute('visible', false);
+            if (gameMode === 'coop') {
+                document.querySelector('#mode_message').setAttribute('value', 'Co-op mode');
+            } else {
+                document.querySelector('#mode_message').setAttribute('value', 'Competitive mode');
+            }
+        });
+   
     </script>
 </body>
 </html>
