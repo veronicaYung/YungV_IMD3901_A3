@@ -2,7 +2,7 @@
 AFRAME.registerComponent('generateboxes', {
     init: function() {
         const spawnArea = document.querySelector('#spawnArea');
-        const colors = ['#008000', '#0000FF', '#FF007F', '#FFA500']; // Colors of the floors
+        const colors = ['#008000', '#0000FF', '#FF007F', '#FF7518']; // Colors of the floors
 
         this.el.addEventListener('startGame', (event) => {
             for (let color of colors) {
@@ -12,6 +12,10 @@ AFRAME.registerComponent('generateboxes', {
 
                     // Set the box's color
                     box.setAttribute('material', 'color', color);
+                    box.classList.add('interactive');
+                    box.setAttribute('id', 'box');
+                    // Allow these boxes to be picked up
+                    box.setAttribute('pickup', '');
 
                     // Set the box's position to a random position within the spawn area
                     const x = Math.random() * 30 - 15 + spawnArea.getAttribute('position').x; // Random x-coordinate within the spawn area
@@ -21,6 +25,7 @@ AFRAME.registerComponent('generateboxes', {
 
                     // Add the box to the scene
                     document.querySelector('a-scene').appendChild(box);
+   
                 }
             }
         });

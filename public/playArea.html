@@ -7,20 +7,18 @@
     <script src="https://unpkg.com/aframe-animation-component@6.1.1/dist/aframe-animation-component.min.js"></script>
     <script src="https://unpkg.com/aframe-extras@^6/dist/aframe-extras.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="js/generateBoxes.js"></script>  
     <script src="js/timer.js"></script>  
     <script src="js/compAssignColors.js"></script>  
-    
+
 </head>
 <body>
     <a-scene background="color: #ECECEC">
         <!--Camera and lights-->
-        <a-entity id = "camera_main" position = "0 1.6 0" camera wasd-controls look-controls>
-            <a-entity cursor = "rayOrigin:mouse;" raycaster="far:20; interval:200; objects:.interactive;"></a-entity>
+        <a-entity id = "camera" position = "0 1.6 0" camera wasd-controls look-controls>
+            <a-entity cursor="rayOrigin:mouse;" raycaster="far:20; interval:20; objects:.interactive;" id="cursor"></a-entity>
             <a-text id="timer" timer position="0 2 -3" align="center" color="#000"></a-text>
-            <a-text id="colorToFind" position="4 -1.4 -3" align="right" color="#000"></a-text>
-
-
+            <a-text id="colorToFind" position="4 -1.2 -3" align="right" color="#000"></a-text>
+            <a-box id="attachedBox" position="0 -0.8 -1" visible="false"></a-box>
         </a-entity>
         <!-- Message -->
         <a-text id="message" value="" position="0 2 -3" align="center" color="#000"></a-text>
@@ -30,7 +28,7 @@
         <a-plane id="floor_green" position="-2.5 0 -4" rotation="-90 0 0" width="5" height="5" color="#008000"></a-plane>
         <a-plane id="floor_blue" position="2.5 0 -4" rotation="-90 0 0" width="5" height="5" color="#0000FF"></a-plane>
         <a-plane id="floor_pink" position="-2.5 0 -9" rotation="-90 0 0" width="5" height="5" color="#FF007F"></a-plane>
-        <a-plane id="floor_orange" position="2.5 0 -9" rotation="-90 0 0" width="5" height="5" color="#FFA500"></a-plane>
+        <a-plane id="floor_orange" position="2.5 0 -9" rotation="-90 0 0" width="5" height="5" color="#FF7518"></a-plane>
 
         <!-- Spawn Area -->
         <a-plane id = "spawnArea" position="22 0 -4" rotation="-90 0 0" width="30" height="30" color="#7BC8A4"></a-plane>
@@ -63,7 +61,21 @@
 
     <script>
         const socket = io('http://localhost:8080');
+        //---------Event Listeners ----------------
+        document.querySelector('#coopButton').addEventListener('click', () => {
+            console.log('Coop button clicked');
+            if (coopButton.getAttribute('visible')) {
+                socket.emit('gameModeSelected', 'coop');
+            }
+        });
 
+        document.querySelector('#competeButton').addEventListener('click', () => {
+            console.log('Compete button clicked');
+            if (competeButton.getAttribute('visible')) {
+                socket.emit('gameModeSelected', 'compete');
+            }   
+        });
+        //---------Socket Listeners ----------------
         socket.on('waitingForPlayer', () => {
             // Display the message
             document.querySelector('#message').setAttribute('value', 'Waiting for player 2...');
@@ -76,17 +88,8 @@
             document.querySelector('#competeButton').setAttribute('visible', true);
         });
 
-        document.querySelector('#coopButton').addEventListener('click', () => {
-            console.log('Coop button clicked');
-            socket.emit('gameModeSelected', 'coop');
-        });
-
-        document.querySelector('#competeButton').addEventListener('click', () => {
-            console.log('Compete button clicked');
-            socket.emit('gameModeSelected', 'compete');
-        });
-
         socket.on('startGame', (gameMode) => {
+            console.log("in start game");
             var [player1Color, player2Color] = assignColors();
             document.querySelector('#coopButton').setAttribute('visible', false);
             document.querySelector('#competeButton').setAttribute('visible', false);
@@ -96,20 +99,88 @@
             } else {
                 document.querySelector('#mode_message').setAttribute('value', 'Competitive mode');
             }
-            // Generate boxes
-            document.querySelector('[generateboxes]').emit('startGame');
             //start the timer
             document.querySelector('[timer]').emit('startGame');
             // display color to find 
             var colorText = document.querySelector('#colorToFind');
             colorText.setAttribute('text', 'value', `Player 1: find ${player1Color} blocks\nPlayer 2: find ${player2Color} blocks`);
 
-
-
-
-
         });
-   
+        socket.on('boxesGenerated', (boxes) => {
+            // Remove any existing boxes
+            var existingBoxes = document.querySelectorAll('.box');
+            existingBoxes.forEach((box) => {
+                box.parentNode.removeChild(box);
+            });
+
+            // Create the new boxes
+            let boxCount = 0; 
+            boxes.forEach((boxData) => {
+                var box = document.createElement('a-box');
+                box.setAttribute('position', boxData.position);
+                box.setAttribute('material', 'color', boxData.color);
+                box.classList.add('interactive');
+                box.setAttribute('id', 'box' + boxCount);
+                boxCount++;
+                // Allow these boxes to be picked up
+                box.setAttribute('pickup', '');
+                document.querySelector('a-scene').appendChild(box);
+                // Add the event listener to the box
+                box.addEventListener('mousedown', () => {
+                    console.log("clicked on a box");
+                    const boxData = {
+                        id: box.getAttribute('id'),
+                        position: box.getAttribute('position'),
+                        playerId: socket.id, 
+                        color: box.getAttribute('material').color
+                    };
+                    console.log(boxData.color);
+                    socket.emit('boxPickedUp_s', boxData);
+                });
+                // Add the mouseup event listener to the box
+                box.addEventListener('mouseup', () => {
+                    const boxData = {
+                        id: box.getAttribute('id'),
+                        position: box.getAttribute('position'),
+                        playerId: socket.id, 
+                        color: box.getAttribute('material').color
+                    };
+                    // Get the camera's direction
+                    var camera = document.getElementById('camera');
+                    var cameraDirection = camera.object3D.getWorldDirection(new THREE.Vector3());
+
+                    // Calculate the drop position
+                    var dropPosition = cameraDirection.multiplyScalar(-1).add(camera.object3D.position);
+                    dropPosition.y -= 1;
+
+                    boxData.position = dropPosition; // Add the new position to the boxData
+
+                    socket.emit('boxDropped_s', boxData);
+                });
+            });
+        });
+
+        // Handle the 'boxPickedUp' event
+        socket.on('boxPickedUp_c', (boxData) => {
+            // Check if the player who picked up the box is the same as the current player
+            var box = document.getElementById(boxData.id);
+            box.setAttribute('visible', 'false');
+            // Check if the player who picked up the box is the same as the current player
+            if (boxData.playerId === socket.id) {
+                var attachedBox = document.getElementById('attachedBox');
+                attachedBox.setAttribute('visible', 'true');
+                attachedBox.setAttribute('material', 'color', boxData.color);
+            }
+           
+        });
+
+        socket.on('boxDropped_c', (boxData) => {
+            var box = document.getElementById(boxData.id);
+            box.setAttribute('position', boxData.position); // Set the new position
+            box.setAttribute('visible', 'true');
+            var attachedBox = document.getElementById('attachedBox');
+            attachedBox.setAttribute('visible', 'false');
+        });
     </script>
 </body>
 </html>
