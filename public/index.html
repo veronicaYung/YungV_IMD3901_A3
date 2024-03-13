@@ -13,6 +13,9 @@
 </head>
 <body>
     <a-scene background="color: #ECECEC">
+        <a-assets timeout="10000">
+            <audio id="bg_music" src="assets/barn_music.mp3" preload="auto" crossorigin = "anonymous"></audio>
+        </a-assets>
         <!--Camera and lights-->
         <a-entity id = "camera" position = "0 1.6 0" camera wasd-controls look-controls>
             <a-entity cursor="rayOrigin:mouse;" raycaster="far:20; interval:20; objects:.interactive;" id="cursor"></a-entity>
@@ -20,6 +23,9 @@
             <a-text id="colorToFind" position="4 -1.2 -3" align="right" color="#000"></a-text>
             <a-box id="attachedBox" position="0 -0.8 -1" visible="false"></a-box>
         </a-entity>
+
+        <!--Music-->
+        <a-entity sound="src:#bg_music; loop: true; autoplay:true;"></a-entity>
 
         <!-- Messages -->
         <a-text id="message" value="" position="0 2 -3" align="center" color="#000"></a-text>
