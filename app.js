@@ -21,7 +21,7 @@ function generateBoxes() {
         for (let i = 0; i < 20; i++) {
             // Generate a random position within the spawn area
             const x = Math.random() * 30 + 7; // Random x-coordinate within the spawn area
-            const y = 0.5; // Y-coordinate (half the height of the box to make it appear on the floor)
+            const y = 0.7; // Y-coordinate (half the height of the box to make it appear on the floor)
             const z = Math.random() * 30 - 19; // Random z-coordinate within the spawn area
 
             // Create a new box
