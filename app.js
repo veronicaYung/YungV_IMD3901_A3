@@ -82,8 +82,8 @@ io.on('connection',(socket)=>{
     socket.on('boxDropped_s', (boxData) => {
         io.emit('boxDropped_c', boxData);
     });
-    socket.on('timerEnded', () => {
-        io.emit('gameOver');
+    socket.on('timerEnded', (gameMode) => {
+        io.emit('gameOver', gameMode);
     });
 
 

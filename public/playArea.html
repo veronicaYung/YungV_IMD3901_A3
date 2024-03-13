@@ -114,10 +114,10 @@
         }
         //---------Socket Listeners ----------------
         socket.on('waitingForPlayer', () => {
-            // Display the message
             document.querySelector('#message').setAttribute('value', 'Waiting for player 2...');
             console.log('Waiting for player 2...');
         });
+        
         socket.on('bothPlayersConnected', () => {
             console.log('Both players have connected');
             document.querySelector('#message').setAttribute('value', 'All players in... Choose a game mode ');
@@ -132,15 +132,17 @@
             document.querySelector('#message').setAttribute('visible', false);
             if (gameMode === 'coop') {
                 document.querySelector('#mode_message').setAttribute('value', 'Co-op mode');
+                document.querySelector('#timer').setAttribute('timer', {gameMode: 'coop'});
+                var co_op_color = document.querySelector('#colorToFind');
+                co_op_color.setAttribute('text', 'value', `Collect 10 pink blocks!`);
             } else {
                 document.querySelector('#mode_message').setAttribute('value', 'Competitive mode');
+                // display color to find 
+                var colorText = document.querySelector('#colorToFind');
+                colorText.setAttribute('text', 'value', `Player 1: find ${player1Color} blocks\nPlayer 2: find ${player2Color} blocks`);
             }
             //start the timer
             document.querySelector('[timer]').emit('startGame');
-
-            // display color to find 
-            var colorText = document.querySelector('#colorToFind');
-            colorText.setAttribute('text', 'value', `Player 1: find ${player1Color} blocks\nPlayer 2: find ${player2Color} blocks`);
 
         });
         socket.on('boxesGenerated', (boxes) => {
@@ -188,7 +190,7 @@
 
                     // Calculate the drop position
                     var dropPosition = cameraDirection.multiplyScalar(-1).add(camera.object3D.position);
-                    dropPosition.y -= 1.2;
+                    dropPosition.y -= 1;
 
                     boxData.position = dropPosition; // Add the new position to the boxData
 
@@ -219,50 +221,59 @@
             attachedBox.setAttribute('visible', 'false');
         });
 
-        socket.on('gameOver', () => {
-            console.log("Game over calculations")
-            var player1Score = 0;
-            var player2Score = 0;
-            var player1ColorHex = colorNameToHex(player1Color);
-            var player2ColorHex = colorNameToHex(player2Color);
-
-            // Select all the floors
+        function blocksOnFloor (color){
+            colorHex = colorNameToHex(color);
+            var blocksOnFloor = 0;
             var floors = document.querySelectorAll('.floor');
-
-            // Calculate score for player 1
             floors.forEach((floor) => {
                 var floorColor = floor.getAttribute('material').color; 
-                if (floorColor === player1ColorHex) {
-                    var boxes = document.querySelectorAll('.box')
-                    boxes.forEach((box) => { 
-                        var boxColor = box.getAttribute('material').color;
-
-                        if (boxColor === floorColor && isBoxTouchingFloor(box, floor)) {
-                            player1Score++;
-                        }
-                    });
-                }
-            });
-
-            // Calculate score for player 2
-            floors.forEach((floor) => {
-                var floorColor = floor.getAttribute('material').color; 
-                if (floorColor === player2ColorHex) {
-                    console.log("floor and player color match 2")
+                if (floorColor === colorHex) {
                     var boxes = document.querySelectorAll('.box')
                     boxes.forEach((box) => {
                         var boxColor = box.getAttribute('material').color;
                         if (boxColor === floorColor && isBoxTouchingFloor(box, floor)) {
-                            console.log("box and player color match")
-                            player2Score++;
+                            blocksOnFloor++;
                         }
                     });
                 }
             });
+            return blocksOnFloor;
+        }
+        socket.on('gameOver', (gameMode) => {
+            console.log("Game over calculations")
+            var player1Score = 0;
+            var player2Score = 0;
+            // Select all the floors
+            var floors = document.querySelectorAll('.floor');
+            
+            if(gameMode === 'compete'){
+                player1Score = blocksOnFloor(player1Color);
+                player2Score = blocksOnFloor(player2Color);
 
-            // Display the scores
-            console.log('Player 1 Score:', player1Score);
-            console.log('Player 2 Score:', player2Score);
+                if (player1Score > player2Score) {
+                    document.getElementById('timer').setAttribute('value', 'Player 1 Wins!');
+                    document.getElementById('colorToFind').setAttribute('value', `Player 1 Score: ${player1Score}\nPlayer 2 Score: ${player2Score}`);
+                } else if (player1Score < player2Score) {
+                    document.getElementById('timer').setAttribute('value', 'Player 2 Wins!');
+                    document.getElementById('colorToFind').setAttribute('value', `Player 1 Score: ${player1Score}\nPlayer 2 Score: ${player2Score}`);
+                } else {
+                    document.getElementById('timer').setAttribute('value', 'It\'s a Draw!');
+                    document.getElementById('colorToFind').setAttribute('value', `Player 1 Score: ${player1Score}\nPlayer 2 Score: ${player2Score}`);
+                }
+
+            } else {
+                var pinkBlocksOnFloor = 0;
+                pinkBlocksOnFloor = blocksOnFloor('pink');
+                
+                // Check if the players have reached the target score
+                if (pinkBlocksOnFloor >= 10) {
+                    document.getElementById('timer').setAttribute('value', `You Win!\nCollected: ${pinkBlocksOnFloor}`);
+                }
+                else {
+                    document.getElementById('timer').setAttribute('value', `You Lose!\nCollected: ${pinkBlocksOnFloor}`);
+                }
+            }
+           
         });
     </script>
 </body>
