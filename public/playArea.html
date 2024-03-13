@@ -25,10 +25,10 @@
         <a-text id="mode_message" value="" position="0 1.8 -3" align="center" color="#000"></a-text>
 
         <!-- Floors-->
-        <a-plane id="floor_green" position="-2.5 0 -4" rotation="-90 0 0" width="5" height="5" color="#008000"></a-plane>
-        <a-plane id="floor_blue" position="2.5 0 -4" rotation="-90 0 0" width="5" height="5" color="#0000FF"></a-plane>
-        <a-plane id="floor_pink" position="-2.5 0 -9" rotation="-90 0 0" width="5" height="5" color="#FF007F"></a-plane>
-        <a-plane id="floor_orange" position="2.5 0 -9" rotation="-90 0 0" width="5" height="5" color="#FF7518"></a-plane>
+        <a-plane class = floor id="green" position="-2.5 0 -4" rotation="-90 0 0" width="5" height="5" color="#008000"></a-plane>
+        <a-plane class = floor id="blue" position="2.5 0 -4" rotation="-90 0 0" width="5" height="5" color="#0000FF"></a-plane>
+        <a-plane class = floor id="pink" position="-2.5 0 -9" rotation="-90 0 0" width="5" height="5" color="#FF007F"></a-plane>
+        <a-plane class = floor id="orange" position="2.5 0 -9" rotation="-90 0 0" width="5" height="5" color="#FF7518"></a-plane>
 
         <!-- Spawn Area -->
         <a-plane id = "spawnArea" position="22 0 -4" rotation="-90 0 0" width="30" height="30" color="#7BC8A4"></a-plane>
@@ -55,12 +55,14 @@
             <a-text value="Co-op" align="center" color="#FFF" position="0 0 0.01"></a-text>
         </a-entity>
 
-        <a-entity generateboxes></a-entity>
+        <!-- <a-entity generateboxes></a-entity> -->
 
     </a-scene>
 
     <script>
         const socket = io('http://localhost:8080');
+        var [player1Color, player2Color] = assignColors();
+        console.log('Player 1 color EARLY:', player1Color);
         //---------Event Listeners ----------------
         document.querySelector('#coopButton').addEventListener('click', () => {
             console.log('Coop button clicked');
@@ -75,6 +77,41 @@
                 socket.emit('gameModeSelected', 'compete');
             }   
         });
+        //--------Functions ----------------
+        function colorNameToHex(colorName) {
+            var colorHex;
+
+            switch (colorName) {
+                case 'pink':
+                    colorHex = '#FF007F';
+                    break;
+                case 'green':
+                    colorHex = '#008000';
+                    break;
+                case 'blue':
+                    colorHex = '#0000FF';
+                    break;
+                case 'orange':
+                    colorHex = '#FF7518';
+                    break;
+                // Add more cases as needed
+                default:
+                    console.log('Unknown color');
+            }
+
+            return colorHex;
+        }
+        function isBoxTouchingFloor(box, floor) {
+            var boxPosition = box.getAttribute('position');
+            var floorPosition = floor.getAttribute('position');
+
+            var dx = boxPosition.x - floorPosition.x;
+            var dy = boxPosition.y - floorPosition.y;
+            var dz = boxPosition.z - floorPosition.z;
+
+            var distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            return distance < 2;
+        }
         //---------Socket Listeners ----------------
         socket.on('waitingForPlayer', () => {
             // Display the message
@@ -90,7 +127,6 @@
 
         socket.on('startGame', (gameMode) => {
             console.log("in start game");
-            var [player1Color, player2Color] = assignColors();
             document.querySelector('#coopButton').setAttribute('visible', false);
             document.querySelector('#competeButton').setAttribute('visible', false);
             document.querySelector('#message').setAttribute('visible', false);
@@ -101,6 +137,7 @@
             }
             //start the timer
             document.querySelector('[timer]').emit('startGame');
+
             // display color to find 
             var colorText = document.querySelector('#colorToFind');
             colorText.setAttribute('text', 'value', `Player 1: find ${player1Color} blocks\nPlayer 2: find ${player2Color} blocks`);
@@ -119,7 +156,7 @@
                 var box = document.createElement('a-box');
                 box.setAttribute('position', boxData.position);
                 box.setAttribute('material', 'color', boxData.color);
-                box.classList.add('interactive');
+                box.classList.add('interactive','box');
                 box.setAttribute('id', 'box' + boxCount);
                 boxCount++;
                 // Allow these boxes to be picked up
@@ -151,7 +188,7 @@
 
                     // Calculate the drop position
                     var dropPosition = cameraDirection.multiplyScalar(-1).add(camera.object3D.position);
-                    dropPosition.y -= 1;
+                    dropPosition.y -= 1.2;
 
                     boxData.position = dropPosition; // Add the new position to the boxData
 
@@ -180,6 +217,52 @@
             box.setAttribute('visible', 'true');
             var attachedBox = document.getElementById('attachedBox');
             attachedBox.setAttribute('visible', 'false');
+        });
+
+        socket.on('gameOver', () => {
+            console.log("Game over calculations")
+            var player1Score = 0;
+            var player2Score = 0;
+            var player1ColorHex = colorNameToHex(player1Color);
+            var player2ColorHex = colorNameToHex(player2Color);
+
+            // Select all the floors
+            var floors = document.querySelectorAll('.floor');
+
+            // Calculate score for player 1
+            floors.forEach((floor) => {
+                var floorColor = floor.getAttribute('material').color; 
+                if (floorColor === player1ColorHex) {
+                    var boxes = document.querySelectorAll('.box')
+                    boxes.forEach((box) => { 
+                        var boxColor = box.getAttribute('material').color;
+
+                        if (boxColor === floorColor && isBoxTouchingFloor(box, floor)) {
+                            player1Score++;
+                        }
+                    });
+                }
+            });
+
+            // Calculate score for player 2
+            floors.forEach((floor) => {
+                var floorColor = floor.getAttribute('material').color; 
+                if (floorColor === player2ColorHex) {
+                    console.log("floor and player color match 2")
+                    var boxes = document.querySelectorAll('.box')
+                    boxes.forEach((box) => {
+                        var boxColor = box.getAttribute('material').color;
+                        if (boxColor === floorColor && isBoxTouchingFloor(box, floor)) {
+                            console.log("box and player color match")
+                            player2Score++;
+                        }
+                    });
+                }
+            });
+
+            // Display the scores
+            console.log('Player 1 Score:', player1Score);
+            console.log('Player 2 Score:', player2Score);
         });
     </script>
 </body>

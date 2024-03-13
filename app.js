@@ -82,6 +82,10 @@ io.on('connection',(socket)=>{
     socket.on('boxDropped_s', (boxData) => {
         io.emit('boxDropped_c', boxData);
     });
+    socket.on('timerEnded', () => {
+        io.emit('gameOver');
+    });
+
 
     //custom events --- default---
     socket.on('red', (data)=>{
@@ -93,6 +97,7 @@ io.on('connection',(socket)=>{
         console.log("blue event recieved");
         io.emit('color_change',{r:0, g:0,b:255});
     });
+
 }); // This closing bracket was missing
 
 //feault--------------------------------

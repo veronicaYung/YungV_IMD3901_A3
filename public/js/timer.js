@@ -8,7 +8,6 @@ AFRAME.registerComponent('timer', {
             this.startCountdown();
         });
     },
-
     startCountdown: function () {
         this.data.countdown = 30;
         this.timerInterval = setInterval(() => {
@@ -16,6 +15,8 @@ AFRAME.registerComponent('timer', {
             this.el.setAttribute('text', 'value', `Time remaining: ${this.data.countdown}s`); // Corrected line
             if (this.data.countdown <= 0) {
                 clearInterval(this.timerInterval);
+                socket.emit('timerEnded');
+                console.log('Game over');
             }
         }, 1000);
     }
